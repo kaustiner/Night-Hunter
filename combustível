@@ -1,0 +1,86 @@
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+local Button = Instance.new("TextButton", ScreenGui)
+
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.9, -25)
+Button.Text = "Alimentar Fogueira"
+Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.Active = true
+Button.Draggable = true
+
+-- Serviços e variáveis
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local startDragRemote = ReplicatedStorage.RemoteEvents.RequestStartDraggingItem
+local storeRemote = ReplicatedStorage.RemoteEvents.RequestBagStoreItem
+local dropRemote = ReplicatedStorage.RemoteEvents.RequestBagDropItem
+local stopRemote = ReplicatedStorage.RemoteEvents.StopDraggingItem
+
+-- Detecta qualquer saco válido no inventário
+local function encontrarSaco()
+    for _, item in pairs(player.Inventory:GetChildren()) do
+        if item:FindFirstChild("Sack") then
+            return item
+        end
+    end
+    return nil
+end
+
+local nomesPermitidos = {
+    ["Coal"] = true,
+    ["Fuel Canister"] = true
+}
+
+local posFogueira = Vector3.new(-0.1, 16.5, -1.1)
+
+-- Função principal
+local function alimentarFogueira()
+    local saco = encontrarSaco()
+    if not saco then
+        warn("Nenhum saco encontrado no inventário.")
+        return
+    end
+
+    for _, item in pairs(workspace.Items:GetChildren()) do
+        if nomesPermitidos[item.Name] and item:IsA("Model") and item.PrimaryPart then
+            -- Teleporta até o item
+            humanoidRootPart.CFrame = item:GetPrimaryPartCFrame()
+
+            -- Inicia arrasto
+            startDragRemote:FireServer(item)
+
+            -- Armazena na bag
+            storeRemote:InvokeServer(saco, item)
+
+            -- Teleporta para a fogueira
+            humanoidRootPart.CFrame = CFrame.new(posFogueira)
+
+            -- Dropa e solta todos os itens da bag
+            for _, itemNaBag in pairs(player.ItemBag:GetChildren()) do
+                dropRemote:FireServer(itemNaBag)
+                stopRemote:FireServer(itemNaBag)
+            end
+
+            break
+        end
+    end
+end
+
+-- Repetição 5 vezes por clique
+local function repetirAlimentacao()
+    for i = 1, 5 do
+        alimentarFogueira()
+        task.wait(0.5) -- tempo entre ciclos (ajuste se quiser mais rápido ou mais lento)
+    end
+end
+
+-- Conecta botão à função
+Button.MouseButton1Click:Connect(repetirAlimentacao)
