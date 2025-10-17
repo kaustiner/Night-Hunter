@@ -1,0 +1,120 @@
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+local Button = Instance.new("TextButton", ScreenGui)
+
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.9, -25)
+Button.Text = "Alimentar Fogueira"
+Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.Active = true
+Button.Draggable = true
+
+-- Serviços e variáveis
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local startDragRemote = ReplicatedStorage.RemoteEvents.RequestStartDraggingItem
+local storeRemote = ReplicatedStorage.RemoteEvents.RequestBagStoreItem
+local dropRemote = ReplicatedStorage.RemoteEvents.RequestBagDropItem
+local stopRemote = ReplicatedStorage.RemoteEvents.StopDraggingItem
+
+local executando = false
+
+-- Detecta qualquer saco válido no inventário
+local function encontrarSaco()
+    for _, item in pairs(player.Inventory:GetChildren()) do
+        if item:FindFirstChild("Sack") then
+            return item
+        end
+    end
+    return nil
+end
+
+local nomesPermitidos = {
+    ["Broken Microwave"] = true,
+    ["Broken Fan"] = true,
+    ["Chair"] = true,
+    ["Old Radio"] = true,
+    ["Tyre"] = true,
+    ["Log"] = true   
+}
+
+local posFogueira = Vector3.new(-0.1, 16.5, -1.1)
+
+-- Função auxiliar para corrigir posição se estiver longe da fogueira
+local function garantirPosFogueira(retries)
+    retries = retries or 2
+    for attempt = 1, retries do
+        local distancia = (humanoidRootPart.Position - posFogueira).Magnitude
+        if distancia <= 5 then
+            return true
+        end
+        humanoidRootPart.CFrame = CFrame.new(posFogueira)
+        task.wait(0.5)
+    end
+    return (humanoidRootPart.Position - posFogueira).Magnitude <= 5
+end
+
+-- Função principal
+local function alimentarFogueira()
+    if executando then return end
+    executando = true
+
+    local saco = encontrarSaco()
+    if not saco then
+        warn("Nenhum saco encontrado no inventário.")
+        executando = false
+        return
+    end
+
+    local coletados = 0
+
+    for _, item in pairs(workspace.Items:GetChildren()) do
+        if coletados >= 5 then break end
+
+        if nomesPermitidos[item.Name] and item:IsA("Model") and item.PrimaryPart then
+            humanoidRootPart.CFrame = item:GetPrimaryPartCFrame()
+            task.wait(0.8) -- espera um pouco menos de 1 segundo
+
+            for i = 1, 3 do
+                startDragRemote:FireServer(item)
+                task.wait(0.15)
+            end
+
+            storeRemote:InvokeServer(saco, item)
+
+            coletados = coletados + 1
+            task.wait(0.2)
+        end
+    end
+
+    -- Teleporta para a fogueira e aplica verificação dupla
+    humanoidRootPart.CFrame = CFrame.new(posFogueira)
+    task.wait(3)
+
+    -- Primeira verificação e correção se necessário
+    local ok = garantirPosFogueira(1)
+    if not ok then
+        -- Segunda verificação/correção
+        ok = garantirPosFogueira(1)
+    end
+
+    task.wait(0.3)
+
+    -- Dropa e solta todos os itens da bag
+    for _, itemNaBag in pairs(player.ItemBag:GetChildren()) do
+        dropRemote:FireServer(itemNaBag)
+        stopRemote:FireServer(itemNaBag)
+    end
+
+    executando = false
+end
+
+-- Conecta botão à função
+Button.MouseButton1Click:Connect(alimentarFogueira)
