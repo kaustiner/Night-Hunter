@@ -4,7 +4,7 @@ local Button = Instance.new("TextButton", ScreenGui)
 
 Button.Size = UDim2.new(0, 200, 0, 50)
 Button.Position = UDim2.new(0.5, -100, 0.9, -25)
-Button.Text = "Abastecer Fogueira"
+Button.Text = "Alimentar Fogueira"
 Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.Font = Enum.Font.SourceSansBold
@@ -41,7 +41,7 @@ local nomesPermitidos = {
     ["Fuel Canister"] = true
 }
 
-local posFogueira = Vector3.new(X: 21.2 Y: 6.3 Z: -5.5)
+local posFogueira = Vector3.new(-0.1, 16.5, -1.1)
 
 -- Função auxiliar para corrigir posição se estiver longe da fogueira
 local function garantirPosFogueira(retries)
