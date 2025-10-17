@@ -4,7 +4,7 @@ local Button = Instance.new("TextButton", ScreenGui)
 
 Button.Size = UDim2.new(0, 200, 0, 50)
 Button.Position = UDim2.new(0.5, -100, 0.9, -25)
-Button.Text = "Abastecer Bancada"
+Button.Text = "Abastecer Fogueira"
 Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.Font = Enum.Font.SourceSansBold
