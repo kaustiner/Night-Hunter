@@ -1,0 +1,75 @@
+-- GUI Setup
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "TeleportGUI"
+gui.ResetOnSpawn = false
+
+-- Main Frame
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Active = true
+frame.Draggable = true
+
+-- Minimize Button
+local minimize = Instance.new("TextButton", frame)
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -35, 0, 5)
+minimize.Text = "-"
+minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minimize.TextColor3 = Color3.new(1, 1, 1)
+
+-- Title
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 5, 0, 5)
+title.Text = "Teleportador de Item"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+
+-- Input Box
+local input = Instance.new("TextBox", frame)
+input.Size = UDim2.new(1, -20, 0, 30)
+input.Position = UDim2.new(0, 10, 0, 45)
+input.PlaceholderText = "Digite o nome do objeto"
+input.TextColor3 = Color3.new(1, 1, 1)
+input.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+-- TP Button
+local tpButton = Instance.new("TextButton", frame)
+tpButton.Size = UDim2.new(1, -20, 0, 30)
+tpButton.Position = UDim2.new(0, 10, 0, 85)
+tpButton.Text = "TP"
+tpButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+tpButton.TextColor3 = Color3.new(1, 1, 1)
+
+-- Minimize Logic
+local minimized = false
+minimize.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _, child in ipairs(frame:GetChildren()) do
+        if child ~= minimize and child ~= title then
+            child.Visible = not minimized
+        end
+    end
+    frame.Size = minimized and UDim2.new(0, 300, 0, 40) or UDim2.new(0, 300, 0, 150)
+end)
+
+-- TP Logic
+tpButton.MouseButton1Click:Connect(function()
+    local objectName = input.Text
+    if objectName == "" then return end
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+
+    local target = game.Workspace:FindFirstChild(objectName, true)
+    if target and target:IsA("BasePart") then
+        target.Position = root.Position + Vector3.new(0, 5, 0)
+    else
+        warn("Objeto não encontrado ou inválido.")
+    end
+end)
