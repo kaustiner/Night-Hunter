@@ -4,7 +4,7 @@ local Button = Instance.new("TextButton", ScreenGui)
 
 Button.Size = UDim2.new(0, 200, 0, 50)
 Button.Position = UDim2.new(0.5, -100, 0.9, -25)
-Button.Text = "Alimentar Fogueira"
+Button.Text = "Alimentar Bancada"
 Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.Font = Enum.Font.SourceSansBold
@@ -22,9 +22,24 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local startDragRemote = ReplicatedStorage.RemoteEvents.RequestStartDraggingItem
 local storeRemote = ReplicatedStorage.RemoteEvents.RequestBagStoreItem
 local dropRemote = ReplicatedStorage.RemoteEvents.RequestBagDropItem
-local stopRemote = ReplicatedStorage.RemoteEvents.StopDraggingItem
 
 local executando = false
+
+-- Itens permitidos como sucata
+local itensSucata = {
+    ["Broken Microwave"] = true,
+    ["Broken Fan"] = true,
+    ["Chair"] = true
+    ["Old Radio"] = true,
+    ["Washing Machine"] = true,
+    ["Tyre"] = true     
+    ["Old Radio"] = true,
+    ["Old Car Engine"] = true,
+    ["Metal Chair"] = true
+}
+
+-- Coordenadas da bancada
+local posBancada = Vector3.new(20.7, 6.5, -5.0)
 
 -- Detecta qualquer saco válido no inventário
 local function encontrarSaco()
@@ -36,81 +51,66 @@ local function encontrarSaco()
     return nil
 end
 
-local nomesPermitidos = {
-    ["Coal"] = true,
-    ["Fuel Canister"] = true
-}
+-- Dropa todos os itens do "Old Sack"
+local function droparItensDoSaco()
+    local inventario = player:WaitForChild("Inventory")
+    local oldSack = inventario:FindFirstChild("Old Sack") or inventario:FindFirstChild("OldSack") or inventario:FindFirstChildWhichIsA("Folder")
 
-local posFogueira = Vector3.new(-0.1, 16.5, -1.1)
-
--- Função auxiliar para corrigir posição se estiver longe da fogueira
-local function garantirPosFogueira(retries)
-    retries = retries or 2
-    for attempt = 1, retries do
-        local distancia = (humanoidRootPart.Position - posFogueira).Magnitude
-        if distancia <= 5 then
-            return true
+    if oldSack then
+        for _, item in pairs(oldSack:GetChildren()) do
+            if item:IsA("Instance") then
+                dropRemote:FireServer(oldSack, item, true)
+                print("🔥 Sucata dropado:", item.Name)
+                task.wait(0.2) -- intervalo entre cada drop
+            end
         end
-        humanoidRootPart.CFrame = CFrame.new(posFogueira)
-        task.wait(0.5)
+    else
+        warn("❌ Saco não encontrado ou inválido.")
     end
-    return (humanoidRootPart.Position - posFogueira).Magnitude <= 5
 end
 
 -- Função principal
-local function alimentarFogueira()
+local function AlimentarBancada()
     if executando then return end
     executando = true
 
     local saco = encontrarSaco()
     if not saco then
-        warn("Nenhum saco encontrado no inventário.")
+        warn("❌ Nenhum saco encontrado.")
         executando = false
         return
     end
 
+    -- Teleporta para cada item permitido, coleta e volta
     local coletados = 0
-
     for _, item in pairs(workspace.Items:GetChildren()) do
         if coletados >= 5 then break end
 
-        if nomesPermitidos[item.Name] and item:IsA("Model") and item.PrimaryPart then
-            humanoidRootPart.CFrame = item:GetPrimaryPartCFrame()
-            task.wait(0.8) -- espera um pouco menos de 1 segundo
-
-            for i = 1, 3 do
-                startDragRemote:FireServer(item)
-                task.wait(0.15)
-            end
-
-            storeRemote:InvokeServer(saco, item)
-
-            coletados = coletados + 1
+        if itensSucata[item.Name] and item:IsA("Model") and item.PrimaryPart then
+            -- Teleporta 30m acima do item
+            local posItem = item.PrimaryPart.Position
+            humanoidRootPart.CFrame = CFrame.new(posItem + Vector3.new(0, 70, 0))
             task.wait(0.2)
+
+            -- Simula coleta
+            startDragRemote:FireServer(item)
+            task.wait(0.2)
+            storeRemote:InvokeServer(saco, item)
+            task.wait(0.2)
+
+            -- Volta imediatamente para a Bancada
+            humanoidRootPart.CFrame = CFrame.new(posBancada)
+            task.wait(0.3)
+
+            coletados += 1
         end
     end
 
-    -- Teleporta para a fogueira e aplica verificação dupla
-    humanoidRootPart.CFrame = CFrame.new(posFogueira)
-    task.wait(3)
-
-    -- Primeira verificação e correção se necessário
-    local ok = garantirPosFogueira(1)
-    if not ok then
-        -- Segunda verificação/correção
-        ok = garantirPosFogueira(1)
-    end
-
-    task.wait(0.3)
-
-    -- Dropa e solta todos os itens da bag
-    for _, itemNaBag in pairs(player.ItemBag:GetChildren()) do
-        dropRemote:FireServer(itemNaBag)
-        stopRemote:FireServer(itemNaBag)
-    end
+    -- Dropa os itens coletados na bancada
+    droparItensDoSaco()
 
     executando = false
 end
 
 -- Conecta botão à função
-Button.MouseButton1Click:Connect(alimentarFogueira)
+Button.MouseButton1Click:Connect(AlimentarBancada)
