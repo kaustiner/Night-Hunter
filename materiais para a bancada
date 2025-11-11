@@ -29,11 +29,10 @@ local executando = false
 local itensSucata = {
     ["Broken Microwave"] = true,
     ["Broken Fan"] = true,
-    ["Chair"] = true
+    ["Chair"] = true,
     ["Old Radio"] = true,
     ["Washing Machine"] = true,
-    ["Tyre"] = true     
-    ["Old Radio"] = true,
+    ["Tyre"] = true,
     ["Old Car Engine"] = true,
     ["Metal Chair"] = true
 }
@@ -60,7 +59,7 @@ local function droparItensDoSaco()
         for _, item in pairs(oldSack:GetChildren()) do
             if item:IsA("Instance") then
                 dropRemote:FireServer(oldSack, item, true)
-                print("🔥 Sucata dropado:", item.Name)
+                print("🔥 Sucata dropada:", item.Name)
                 task.wait(0.2) -- intervalo entre cada drop
             end
         end
@@ -87,7 +86,7 @@ local function AlimentarBancada()
         if coletados >= 5 then break end
 
         if itensSucata[item.Name] and item:IsA("Model") and item.PrimaryPart then
-            -- Teleporta 30m acima do item
+            -- Teleporta 70m acima do item
             local posItem = item.PrimaryPart.Position
             humanoidRootPart.CFrame = CFrame.new(posItem + Vector3.new(0, 70, 0))
             task.wait(0.2)
@@ -100,7 +99,7 @@ local function AlimentarBancada()
 
             -- Volta imediatamente para a Bancada
             humanoidRootPart.CFrame = CFrame.new(posBancada)
-            task.wait(0.3)
+            task.wait(0.2)
 
             coletados += 1
         end
